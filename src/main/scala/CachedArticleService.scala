@@ -203,7 +203,7 @@ abstract trait RepoService {
 	}
 	def getRepo():List[Article] = articleRepo
 	def getDictionary(): HashMap[String, Boolean] = {
-		val path = "/usr/share/dict/words"
+		val path = "web2"
 		Source.fromFile(path).getLines().foldLeft(HashMap[String, Boolean]())((acc, x) => acc + (x -> true))
 	}
 	def findWordsNotInDictionary(words: List[String]): List[String] = {
