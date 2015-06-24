@@ -22,7 +22,7 @@ object StartUp extends App {
 	val service = system.actorOf(Props[ArticleServiceActor], "CachedArticleService")
 	implicit val timeout = Timeout(1.seconds)
 	val myPort = Properties.envOrElse("PORT", "8080").toInt // for Heroku compatibility
-	IO(Http) ? Http.Bind(service, interface = "localhost", port = myPort)
+	IO(Http) ? Http.Bind(service, interface = "0.0.0.0", port = myPort)
 }
 /*object StartUpAkka extends App {
 	implicit val system = ActorSystem("RSSServiceAkka")
