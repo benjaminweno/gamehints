@@ -119,7 +119,7 @@ trait PostGresArticleService extends RepoService {
 	def reciveFuture():Future[List[Article]] = {
 		Future{
 			val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-			val response: Future[HttpResponse] = pipeline(Get("http://www.theverge.com/rss/frontpage.xml"))
+			val response: Future[HttpResponse] = pipeline(Get("http://www.theverge.com/rss/full.xml"))
 			val oldRepo = articleRepo
 			articleRepo = Await.result(response.map((x:HttpResponse) => updatedRepo(XML.loadString(x.entity.asString))), 2.seconds)
 			transaction {
@@ -137,7 +137,7 @@ object ArticleRepoSys extends Schema {
 trait NonCachedThreadedService extends RepoService {
 	import ExecutionContext.Implicits.global
 	def reciveFuture():Future[List[Article]] = {
-		val javaFuture = asyncClient.prepareGet("http://www.theverge.com/rss/frontpage.xml").execute()
+		val javaFuture = asyncClient.prepareGet("http://www.theverge.com/rss/full.xml").execute()
 		val promise = Promise[List[Article]]()
 		new Thread(new Runnable { 
 			def run() { 
@@ -176,7 +176,7 @@ trait NonCachRepoServiceSpray extends RepoService {
 	import StartUp.system
 	def reciveFuture(): Future[List[Article]] = {
 		val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-		val response: Future[HttpResponse] = pipeline(Get("http://www.theverge.com/rss/frontpage.xml"))
+		val response: Future[HttpResponse] = pipeline(Get("http://www.theverge.com/rss/full.xml"))
 		response.map((x:HttpResponse) => updatedRepo(XML.loadString(x.entity.asString)))
 	}
 }
@@ -185,7 +185,7 @@ trait NonCachedRepoService extends RepoService {
 	import ExecutionContext.Implicits.global
 	def reciveFuture():Future[List[Article]] = {
 		Future {
-			val xml = asyncClient.prepareGet("http://www.theverge.com/rss/frontpage.xml").execute().get
+			val xml = asyncClient.prepareGet("http://www.theverge.com/rss/full.xml").execute().get
 			articleRepo = updatedRepo(XML.loadString(xml.getResponseBody("UTF-8")))
 			articleRepo
 		}
@@ -227,7 +227,7 @@ abstract trait RepoService {
 	}
 	def updateFunction() = {
 		val updatedFuture = Future{
-			val xml = asyncClient.prepareGet("http://www.theverge.com/rss/frontpage.xml").execute().get
+			val xml = asyncClient.prepareGet("http://www.theverge.com/rss/full.xml").execute().get
 			updatedRepo(XML.loadString(xml.getResponseBody("UTF-8")))
 		}
 		updatedFuture onSuccess {
