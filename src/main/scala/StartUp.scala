@@ -15,12 +15,14 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import scala.xml._
+import scala.util.Properties
 
 object StartUp extends App {
 	implicit val system = ActorSystem("RSSService")
 	val service = system.actorOf(Props[ArticleServiceActor], "CachedArticleService")
 	implicit val timeout = Timeout(1.seconds)
-	IO(Http) ? Http.Bind(service, interface = "localhost", port = 1985)
+	val myPort = Properties.envOrElse("PORT", "8080").toInt // for Heroku compatibility
+	IO(Http) ? Http.Bind(service, interface = "localhost", port = myPort)
 }
 /*object StartUpAkka extends App {
 	implicit val system = ActorSystem("RSSServiceAkka")
