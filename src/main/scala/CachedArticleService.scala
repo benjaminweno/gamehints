@@ -108,8 +108,11 @@ trait PostGresArticleService extends RepoService {
 	Class.forName("org.postgresql.Driver")
 	SessionFactory.concreteFactory = Some(()=>
     Session.create(
-        java.sql.DriverManager.getConnection("jdbc:postgresql://localhost/benjaminweno", "benjaminweno", ""),
-        new PostgreSqlAdapter()))
+        //java.sql.DriverManager.getConnection("jdbc:postgresql://localhost/benjaminweno", "benjaminweno", ""),
+       // new PostgreSqlAdapter()))
+    //heroku sql
+		java.sql.DriverManager.getConnection("jdbc:postgresql://ec2-54-83-18-87.compute-1.amazonaws.com/d4gtqgkqaps1o9", "udomazalzodxku", "K9m6S5pG4PyqLgSfLNYRkvVxEc"),
+       	new PostgreSqlAdapter()))
 	transaction {
 		articleRepo = from(ArticleRepoSys.articleRepo)(e => select(e)).toList
 	}
