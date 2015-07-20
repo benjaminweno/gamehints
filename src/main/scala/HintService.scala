@@ -25,10 +25,11 @@ import org.squeryl.annotations.Column
 import org.squeryl.Session
 import org.squeryl.SessionFactory
 import org.squeryl.adapters.PostgreSqlAdapter
+import scala.util.Random
 
 class HintServiceActor extends Actor with HintService {
   def actorRefFactory = context
-  def receive = runRoute(pingRoute ~ getHintRoute ~ postHintRoute)
+  def receive = runRoute(pingRoute ~ getHintRoute ~ postHintRoute ~ getSamplesRoute)
 
 }
 
@@ -53,6 +54,17 @@ trait HintService extends HttpService with HintServiceUtil{
               complete(getHintsOfLevel(int).map(x => renderJson("hints" -> x.map(_.toJson))))
             }
         }
+    }
+    val getSamplesRoute = {
+      pathPrefix("getsamples") {
+        pathPrefix(IntNumber) { level =>
+          pathPrefix(IntNumber) { sampleSize =>
+            get{
+              complete(getHintsSampleOfLevel(level, sampleSize).map(x => renderJson("hints" -> x.map(_.toJson))))
+            }
+          }
+        }
+      }
     }
     val postHintRoute = {
       path("posthint") {
@@ -90,6 +102,21 @@ trait HintServiceUtil {
   }
   def getHintsOfLevel(level: Int):Future[List[Hint]] = {
       getAllHints.map(x => x.filter(_.level == level))
+  }
+  def getHintsSampleOfLevel(level: Int, sampleSize: Int):Future[List[Hint]] = {
+    def getRandomSample( newList:List[Hint], oldList:List[Hint], counter:Int):List[Hint] = {
+      if(counter > 0) {
+        val index = new Random().nextInt(oldList.length)
+        val seletedHint = oldList.apply(index)
+        getRandomSample(seletedHint :: newList, oldList.filter(_ != seletedHint), counter - 1)
+      }
+      else newList
+    }
+    Future {
+      val hints = Await.result(getHintsOfLevel(level), 5.seconds)
+      if (hints.length <= sampleSize) hints
+      else getRandomSample(List[Hint](), hints, sampleSize)
+    }
   }
   def postHint(hint:Hint) {
     val f = Future{
