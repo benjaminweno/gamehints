@@ -28,12 +28,13 @@ import org.squeryl.adapters.PostgreSqlAdapter
 
 class HintServiceActor extends Actor with HintService {
   def actorRefFactory = context
-  def receive = runRoute(pingRoute ~ getHintRoute)
+  def receive = runRoute(pingRoute ~ getHintRoute ~ postHintRoute)
 
 }
 
 trait HintService extends HttpService with HintServiceUtil{
   import ExecutionContext.Implicits.global
+  implicit val formats = DefaultFormats
   val pingRoute = 
       path("ping") {
           get {
@@ -44,14 +45,24 @@ trait HintService extends HttpService with HintServiceUtil{
       pathPrefix("hints") {
         pathEnd {
           get{ 
-            complete(getAllHints.map(x => x.map(y => renderJson(y.toJson))))
+            complete(getAllHints.map(x => renderJson("hints" -> x.map(_.toJson))))
           }
         } ~
         path(IntNumber) { int =>
             get{
-              complete("hints for level " + int)
+              complete(getHintsOfLevel(int).map(x => renderJson("hints" -> x.map(_.toJson))))
             }
         }
+    }
+    val postHintRoute = {
+      path("posthint") {
+        post {
+          entity(as[HttpEntity]) { hint =>
+              postHint(parse(hint.asString).extract[Hint])
+              complete(hint.asString)
+          }
+        }
+      }
     }
 }
 
@@ -65,17 +76,27 @@ trait HintServiceUtil {
   Class.forName("org.postgresql.Driver")
   SessionFactory.concreteFactory = Some(()=>
     Session.create(
-        java.sql.DriverManager.getConnection("jdbc:postgresql://localhost/benjaminweno", "benjaminweno", ""),
-        new PostgreSqlAdapter()))
+      java.sql.DriverManager.getConnection("jdbc:postgresql://localhost/benjaminweno", "benjaminweno", ""),
+      new PostgreSqlAdapter()))
     //heroku sql
     //java.sql.DriverManager.getConnection("jdbc:postgresql://ec2-54-83-18-87.compute-1.amazonaws.com/d4gtqgkqaps1o9", "udomazalzodxku", "K9m6S5pG4PyqLgSfLNYRkvVxEc"),
         //new PostgreSqlAdapter()))
   def getAllHints():Future[List[Hint]] = {
-      Future {
-          transaction {
-            from(HintRepoSys.hintRepo)(e => select(e)).toList
-          }
+    Future {
+        transaction {
+          from(HintRepoSys.hintRepo)(e => select(e)).toList
+        }
+    }
+  }
+  def getHintsOfLevel(level: Int):Future[List[Hint]] = {
+      getAllHints.map(x => x.filter(_.level == level))
+  }
+  def postHint(hint:Hint) {
+    val f = Future{
+      transaction {
+        HintRepoSys.hintRepo.insert(hint)
       }
+    }
   }
   def renderJson(json: org.json4s.JValue):spray.httpx.marshalling.ToResponseMarshallable = {
     pretty(render(json))
