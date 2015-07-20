@@ -1,4 +1,4 @@
-package finalProject
+package hintservice
 
 import com.ning.http.client._
 import scala.concurrent._
@@ -18,16 +18,11 @@ import scala.xml._
 import scala.util.Properties
 
 object StartUp extends App {
-	implicit val system = ActorSystem("RSSService")
-	val service = system.actorOf(Props[ArticleServiceActor], "CachedArticleService")
+	implicit val system = ActorSystem("MainActorSystem")
+	val service = system.actorOf(Props[HintServiceActor], "HintService")
 	implicit val timeout = Timeout(1.seconds)
 	val myPort = Properties.envOrElse("PORT", "8080").toInt // for Heroku compatibility
-	IO(Http) ? Http.Bind(service, interface = "0.0.0.0", port = myPort)
+	//IO(Http) ? Http.Bind(service, interface = "0.0.0.0", port = myPort)
+	IO(Http) ? Http.Bind(service, interface = "localhost", port = 1985)
 }
-/*object StartUpAkka extends App {
-	implicit val system = ActorSystem("RSSServiceAkka")
-	//val service = system.actorOf(Props[AkkaArticleServiceActor], "AkkaArticleService")
-	val service = system.actorOf(Props(new AkkaArticleServiceActor()).withRouter(RoundRobinPool(5)), name = "AkkaArticleService")
-	implicit val timeout = Timeout(2.seconds)
-	IO(Http) ? Http.Bind(service, interface = "localhost", port = 1986)
-}*/
+
